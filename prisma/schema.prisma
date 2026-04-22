@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+enum RatingStyle {
+  STARS
+  BUTTONS
+}
+
+enum TestimonialStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+// ── Models ────────────────────────────────────────────────────────────────────
+
+model Organization {
+  id         String   @id @default(cuid())
+  clerkOrgId String   @unique @map("clerk_org_id")
+  name       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  users        User[]
+  reviewSites  ReviewSite[]
+  widgetConfig WidgetConfig?
+  embedTokens  EmbedToken[]
+  submissions  Submission[]
+  testimonials Testimonial[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String       @id @default(cuid())
+  clerkUserId    String       @unique @map("clerk_user_id")
+  organizationId String       @map("organization_id")
+  role           String       @default("member")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+model ReviewSite {
+  id             String       @id @default(cuid())
+  organizationId String       @map("organization_id")
+  name           String
+  url            String
+  weight         Int          @default(1)
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("review_sites")
+}
+
+// One config per org — created automatically when the org is provisioned.
+model WidgetConfig {
+  id                 String      @id @default(cuid())
+  organizationId     String      @unique @map("organization_id")
+  ratingFloor        Int         @default(4) @map("rating_floor")
+  ratingStyle        RatingStyle @default(BUTTONS) @map("rating_style")
+  hideOnBadPrerating Boolean     @default(true) @map("hide_on_bad_prerating")
+  createdAt          DateTime    @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("widget_configs")
+}
+
+model EmbedToken {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  token          String   @unique @default(cuid())
+  label          String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  submissions  Submission[]
+  testimonials Testimonial[]
+
+  @@map("embed_tokens")
+}
+
+// Internal only — never displayed publicly.
+model Submission {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  embedTokenId   String   @map("embed_token_id")
+  rating         Int
+  message        String
+  submitterName  String?  @map("submitter_name")
+  isRead         Boolean  @default(false) @map("is_read")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  embedToken   EmbedToken   @relation(fields: [embedTokenId], references: [id])
+
+  @@map("submissions")
+}
+
+model Testimonial {
+  id             String            @id @default(cuid())
+  organizationId String            @map("organization_id")
+  embedTokenId   String            @map("embed_token_id")
+  submitterName  String            @map("submitter_name")
+  body           String
+  rating         Int?
+  status         TestimonialStatus @default(PENDING)
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  embedToken   EmbedToken   @relation(fields: [embedTokenId], references: [id])
+
+  @@map("testimonials")
+}
