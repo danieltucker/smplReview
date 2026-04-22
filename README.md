@@ -1,34 +1,131 @@
 # smplReview
-Simple customer review form that allows you to move customers with complaints to your internal reply system and happy customers to a review of your choice.
 
-<b>Configurable rating system</b><br>
-smplReview allows you to use simple Good & Bad ratings or allows for a more fine tuned star based approach.  
+A SaaS review management tool for small businesses. Configure your review sites once, embed a widget on your site, and let smplReview route happy customers to your Google Business, Yelp, or any other review platform — while capturing complaints privately so you can respond before they go public.
 
-<b>Set your own review floor & list as many review sites as you want</b><br>
-You can set a floor for reviews so you can help insure only highly happy customers are sent to your review sites.  By default I suggest setting it to 4 so users that rate you 3 or less are automatically sent to your email so you can rectify the situation without being dinged online. 
+Approved testimonials from happy customers can be displayed on your site via a second embed widget.
 
-When a user selects a poor review before seeing your smplReview page, for instance in an email you can enable automatic hiding of the review options all together to help remove the possibility of them clicking a positive review in order to get to a review site.
+---
 
-Review sites will soon have the ability to be weighted so the most important ones get the highest priority.
+## How It Works
 
-<b>Themed</b><br>
-Easily customize the appeareance to match your site by adjusting the logo and theme via the theme.css file.  
+1. A customer lands on your thank-you page or receives an email with a rating link
+2. They rate their experience via the embedded widget
+3. **Happy customers** (at or above your configured floor) are redirected to one of your review sites — weighted so the most important ones get priority
+4. **Unhappy customers** are shown a private feedback form — their complaint goes to your inbox, not the internet
+5. Happy customers are also offered the option to leave a testimonial for your website
+6. You review and approve testimonials in the dashboard; approved ones appear in the display widget
 
-## Usage
-The index page can be used as an example of how to deploy smplReview or as the actual review page.  If you're going to be using it as an example page simply upload all the files minus the theme.css file in the public folder and link to them in your page.  Next add the following to your page...
+---
 
-```html
-<p>Hello<span id="userName"></span>, thanks for visiting. How would you rate our service?</p>
+## Tech Stack
 
-<div id="smplRating">
-</div>
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Database | PostgreSQL + Prisma |
+| DB Host (POC) | Supabase |
+| Auth | Clerk (multi-tenant orgs) |
+| Admin UI | Tailwind CSS + shadcn/ui |
+| Embed Widgets | Vanilla JS (Vite) — Phase 3/5 |
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── (auth)/          # Sign-in / sign-up (Clerk)
+│   ├── dashboard/       # Admin dashboard (Phase 2+)
+│   ├── api/
+│   │   └── webhooks/clerk/  # Syncs Clerk orgs → database
+│   ├── layout.tsx
+│   └── page.tsx         # Redirects to /dashboard or /sign-in
+├── lib/
+│   ├── prisma.ts        # Prisma client singleton
+│   ├── auth.ts          # getOrganization / requireOrganization helpers
+│   └── utils.ts         # cn() utility for shadcn/ui
+└── middleware.ts         # Route protection via Clerk
+prisma/
+├── schema.prisma         # Full multi-tenant schema
+└── seed.ts              # Local dev seed data
+widgets/                 # Phase 3/5: Vite-built embed bundles
 ```
 
-The first part is optional while the smplRating is where the forms and buttons will be injected. 
+---
 
-The theme.css is the only file that doesn't if you're deploying to your own page.  If you're deploying the index file as the actual review page then you should include it in your deployment as it will be where you control the pages styling.
+## Local Setup
 
-### ToDo
-* <b>Finish:</b> Create stars for rating system.  
-* <b>Add:</b> Add ability to set weights to review sites so site A can appear more then site B.
-* <b>Add:</b> Cookies to prevent users from selecting a negative review and refreshing the page in order to access the positive review button.  
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in the values in `.env.local`:
+
+- **DATABASE_URL** — Supabase project → Settings → Database → Connection string (URI, Transaction mode)
+- **NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY / CLERK_SECRET_KEY** — [Clerk dashboard](https://clerk.com) → API Keys
+- **CLERK_WEBHOOK_SECRET** — set up after step 5 below
+
+### 3. Enable Organizations in Clerk
+
+Clerk Dashboard → Configure → Organizations → enable.
+
+### 4. Push schema and seed
+
+```bash
+npm run db:push    # push schema to your database
+npm run db:seed    # load local dev data
+```
+
+### 5. Run the app
+
+```bash
+npm run dev
+```
+
+App runs at `http://localhost:3000`.
+
+### 6. Configure the Clerk webhook
+
+Once you have a public URL (Vercel or ngrok), add a webhook in the Clerk dashboard pointing to:
+
+```
+https://your-domain.com/api/webhooks/clerk
+```
+
+Required events:
+- `organization.created`
+- `organization.updated`
+- `organization.deleted`
+- `organizationMembership.created`
+- `organizationMembership.deleted`
+
+Paste the signing secret into `.env.local` as `CLERK_WEBHOOK_SECRET`.
+
+---
+
+## Available Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` | Start the development server |
+| `npm run build` | Build for production |
+| `npm run db:push` | Push Prisma schema to the database |
+| `npm run db:migrate` | Run Prisma migrations |
+| `npm run db:seed` | Seed the database with local dev data |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:generate` | Regenerate the Prisma client |
+
+---
+
+## Roadmap
+
+See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the full phase breakdown and current status.
