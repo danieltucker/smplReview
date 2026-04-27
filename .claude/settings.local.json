@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git -C /Users/danieltucker/dev/smplReview log --oneline -8)",
+      "Bash(brew services *)",
+      "Bash(createdb smplreview *)",
+      "Bash(psql -d smplreview -c '\\\\conninfo')",
+      "Bash(/opt/homebrew/bin/createdb smplreview *)",
+      "Bash(npx shadcn@latest add button badge card input label select switch tabs sheet dialog alert-dialog table skeleton separator sonner --yes)",
+      "Bash(npm run *)"
     ]
   }
 }
